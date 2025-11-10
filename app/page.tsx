@@ -20,13 +20,20 @@ import {
   Target,
 } from "lucide-react";
 import { servicesData, propertyTypesData, locationsData } from "@/data";
-import { BRAND_NAME, PHONE, ADDRESS } from "@/lib/constants";
+import { BRAND_NAME, PHONE, ADDRESS, PROPERTY_TYPES as PROPERTY_TYPES_CONSTANTS, SERVICES as SERVICES_CONSTANTS } from "@/lib/constants";
 import { getLocationImagePath, getPropertyTypeImagePath } from "@/lib/image-utils";
 
 
 const PRIMARY_BRAND_COLOR = "#0f2d4c";
 const ACCENT_COLOR = "#f5b544";
 const HAS_STAFFED_OFFICE = true;
+
+// Combine property types first, then services
+const PROJECT_TYPES = [
+  ...PROPERTY_TYPES_CONSTANTS.map(pt => pt.name),
+  ...SERVICES_CONSTANTS.map(s => s.title),
+  "Other"
+];
 
 type Service = { title: string; description: string; href: string };
 type PropertyType = { title: string; benefit: string; href: string; slug: string };
@@ -266,24 +273,24 @@ const LOCAL_BUSINESS_SCHEMA = (() => {
 
 type FormState = {
   name: string;
+  company: string;
   email: string;
   phone: string;
-  property: string;
-  estimatedCloseDate: string;
-  city: string;
-  message: string;
+  projectType: string;
+  timeline: string;
+  details: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 
 const initialFormState: FormState = {
   name: "",
+  company: "",
   email: "",
   phone: "",
-  property: "",
-  estimatedCloseDate: "",
-  city: "",
-  message: "",
+  projectType: "",
+  timeline: "",
+  details: "",
 };
 
 const heroBackgroundStyle = {
@@ -333,62 +340,71 @@ export default function Page(): JSX.Element {
       newErrors.name = "Please enter your full name.";
     }
     if (!state.email.trim()) {
-      newErrors.email = "Please enter a valid email.";
+      newErrors.email = "Please enter a valid email address.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email.trim())) {
-      newErrors.email = "The email format appears incorrect.";
+      newErrors.email = "Please enter a valid email format.";
     }
     if (!state.phone.trim()) {
-      newErrors.phone = "Please provide a phone number with area code.";
+      newErrors.phone = "Please provide a phone number.";
     }
-    if (!state.property.trim()) {
-      newErrors.property = "Describe the property you plan to sell.";
+    if (!state.projectType) {
+      newErrors.projectType = "Please select a project type.";
     }
-    if (!state.estimatedCloseDate.trim()) {
-      newErrors.estimatedCloseDate = "Select the anticipated closing date.";
+    if (!state.timeline) {
+      newErrors.timeline = "Please select a timeline.";
     }
-    if (!state.city.trim()) {
-      newErrors.city = "List the city where the property is located.";
-    }
-    if (!state.message.trim()) {
-      newErrors.message = "Explain your exchange goals or any questions.";
+    if (!state.details.trim()) {
+      newErrors.details = "Please provide details about your exchange goals.";
     }
     return newErrors;
+  };
+
+  const handleInputChange = (field: keyof FormState, value: string) => {
+    // Special handling for phone field - only allow numbers, spaces, dashes, and parentheses
+    if (field === 'phone') {
+      const phoneRegex = /[^0-9\s\-\(\)\+]/g;
+      value = value.replace(phoneRegex, '');
+    }
+
+    setFormState(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("idle");
     setStatusMessage("");
+
     const validationErrors = validateForm(formState);
     setErrors(validationErrors);
+
     if (Object.keys(validationErrors).length > 0) {
       setStatus("error");
-      setStatusMessage(
-        "Please resolve the highlighted items to submit your request.",
-      );
+      setStatusMessage("Please complete all required fields.");
       return;
     }
+
     try {
       setStatus("loading");
-      const response = await fetch("/api/lead", {
+      const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState),
       });
+
       if (!response.ok) {
         throw new Error("Submission failed");
       }
+
       setStatus("success");
-      setStatusMessage(
-        "Thank you. A member of 1031 Exchange Los Angeles will follow up shortly.",
-      );
+      setStatusMessage("Thank you for your inquiry. A member of our team will contact you within 24 hours.");
       setFormState(initialFormState);
       setErrors({});
     } catch {
       setStatus("error");
-      setStatusMessage(
-        "There was an issue sending your details. Please retry or call our office.",
-      );
+      setStatusMessage("There was an issue sending your message. Please try again or call us directly.");
     }
   };
 
@@ -1113,7 +1129,7 @@ export default function Page(): JSX.Element {
                 <motion.form
                   onSubmit={handleSubmit}
                   method="post"
-                  action="/api/lead"
+                  action="/api/contact"
                   noValidate
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1121,121 +1137,118 @@ export default function Page(): JSX.Element {
                   className="rounded-3xl border border-slate-800 bg-slate-950/70 p-8 shadow-lg"
                 >
                   <div className="grid gap-6">
-                    <FormField
-                      label="Name"
-                      id="name"
-                      type="text"
-                      autoComplete="name"
-                      value={formState.name}
-                      onChange={(value) =>
-                        setFormState((prev) => ({ ...prev, name: value }))
-                      }
-                      error={errors.name}
-                      required
-                    />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        label="Name"
+                        id="name"
+                        type="text"
+                        value={formState.name}
+                        onChange={(value) => handleInputChange("name", value)}
+                        error={errors.name}
+                        required
+                        autoComplete="name"
+                      />
+
+                      <FormField
+                        label="Company (Optional)"
+                        id="company"
+                        type="text"
+                        value={formState.company}
+                        onChange={(value) => handleInputChange("company", value)}
+                        autoComplete="organization"
+                      />
+                    </div>
+
                     <FormField
                       label="Email"
                       id="email"
                       type="email"
-                      autoComplete="email"
                       value={formState.email}
-                      onChange={(value) =>
-                        setFormState((prev) => ({ ...prev, email: value }))
-                      }
+                      onChange={(value) => handleInputChange("email", value)}
                       error={errors.email}
                       required
+                      autoComplete="email"
                     />
+
                     <FormField
                       label="Phone"
                       id="phone"
                       type="tel"
-                      autoComplete="tel"
                       value={formState.phone}
-                      onChange={(value) =>
-                        setFormState((prev) => ({ ...prev, phone: value }))
-                      }
+                      onChange={(value) => handleInputChange("phone", value)}
                       error={errors.phone}
                       required
+                      autoComplete="tel"
                     />
+
                     <FormField
-                      label="Current Investment Focus"
-                      id="property"
-                      type="text"
-                      autoComplete="organization-title"
-                      value={formState.property}
-                      onChange={(value) =>
-                        setFormState((prev) => ({ ...prev, property: value }))
-                      }
-                      error={errors.property}
+                      label="Project Type"
+                      id="projectType"
+                      type="select"
+                      value={formState.projectType}
+                      onChange={(value) => handleInputChange("projectType", value)}
+                      error={errors.projectType}
                       required
+                      options={PROJECT_TYPES}
                     />
+
                     <FormField
-                      label="Estimated Close Date"
-                      id="estimatedCloseDate"
-                      type="date"
-                      value={formState.estimatedCloseDate}
-                      onChange={(value) =>
-                        setFormState((prev) => ({
-                          ...prev,
-                          estimatedCloseDate: value,
-                        }))
-                      }
-                      error={errors.estimatedCloseDate}
+                      label="Timeline"
+                      id="timeline"
+                      type="select"
+                      value={formState.timeline}
+                      onChange={(value) => handleInputChange("timeline", value)}
+                      error={errors.timeline}
                       required
+                      options={[
+                        "Immediately (within 30 days)",
+                        "Within 3 months",
+                        "Within 6 months",
+                        "6+ months",
+                        "Just researching options"
+                      ]}
                     />
+
                     <FormField
-                      label="City"
-                      id="city"
-                      type="text"
-                      autoComplete="address-level2"
-                      value={formState.city}
-                      onChange={(value) =>
-                        setFormState((prev) => ({ ...prev, city: value }))
-                      }
-                      error={errors.city}
-                      required
-                    />
-                    <FormField
-                      label="Message"
-                      id="message"
+                      label="Project Details"
+                      id="details"
                       type="textarea"
-                      value={formState.message}
-                      onChange={(value) =>
-                        setFormState((prev) => ({ ...prev, message: value }))
-                      }
-                      error={errors.message}
+                      value={formState.details}
+                      onChange={(value) => handleInputChange("details", value)}
+                      error={errors.details}
                       required
-                      helper="Share investment goals, preferred property types, or passive income objectives."
+                      rows={4}
+                      helper="Describe your property being sold, budget range, and specific requirements."
                     />
                   </div>
                   <motion.button
                     type="submit"
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
-                    className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold focus-visible:ring-2 focus-visible:ring-slate-50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                    className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-base font-semibold focus-visible:ring-2 focus-visible:ring-slate-50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       backgroundColor: ACCENT_COLOR,
                       color: PRIMARY_BRAND_COLOR,
                     }}
                     disabled={status === "loading"}
                   >
-                    {status === "loading" ? "Submitting..." : "Submit Request"}
+                    {status === "loading" ? "Sending..." : "Send Message"}
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </motion.button>
-                  <p className="mt-4 text-xs text-slate-400" id="form-compliance">
-                    Educational content only. Not investment, tax, or legal advice.
+
+                  {statusMessage && (
+                    <div className={`mt-4 p-4 rounded-lg ${
+                      status === "success"
+                        ? "bg-green-500/10 border border-green-500/20 text-green-300"
+                        : "bg-red-500/10 border border-red-500/20 text-red-300"
+                    }`}>
+                      {statusMessage}
+                    </div>
+                  )}
+
+                  <p className="mt-4 text-xs text-slate-400 text-center" id="form-compliance">
+                    Educational content only. Not tax or legal advice.
                   </p>
-                  <div className="mt-4 text-sm" role="status" aria-live="polite">
-                    {statusMessage && (
-                      <p
-                        className={
-                          status === "success" ? "text-emerald-300" : "text-amber-300"
-                        }
-                      >
-                        {statusMessage}
-                      </p>
-                    )}
-                  </div>
                 </motion.form>
               </motion.div>
             </div>
@@ -1387,13 +1400,15 @@ export default function Page(): JSX.Element {
 function FormField(props: {
   label: string;
   id: keyof FormState;
-  type: "text" | "email" | "tel" | "date" | "textarea";
+  type: "text" | "email" | "tel" | "select" | "textarea";
   value: string;
   onChange: (value: string) => void;
   autoComplete?: string;
   error?: string;
   required?: boolean;
   helper?: string;
+  options?: string[];
+  rows?: number;
 }): JSX.Element {
   const {
     label,
@@ -1405,6 +1420,8 @@ function FormField(props: {
     error,
     required,
     helper,
+    options,
+    rows,
   } = props;
   const inputClasses =
     "mt-2 w-full rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-3 text-sm text-slate-200 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900";
@@ -1418,14 +1435,31 @@ function FormField(props: {
         {label}
         {required ? <span style={{ color: ACCENT_COLOR }}>{" "}*</span> : null}
       </label>
-      {type === "textarea" ? (
+      {type === "select" ? (
+        <select
+          id={id}
+          name={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          className={inputClasses}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy || undefined}
+        >
+          <option value="">Select an option</option>
+          {options?.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      ) : type === "textarea" ? (
         <textarea
           id={id}
           name={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          rows={4}
+          rows={rows || 4}
           required={required}
+          autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy || undefined}
           className={`${inputClasses} resize-none`}
@@ -1450,7 +1484,7 @@ function FormField(props: {
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="mt-2 text-xs text-amber-300">
+        <p id={errorId} className="mt-2 text-xs text-red-400">
           {error}
         </p>
       ) : null}

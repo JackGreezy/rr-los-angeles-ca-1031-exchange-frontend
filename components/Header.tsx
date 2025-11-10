@@ -92,16 +92,16 @@ const Header = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-16 md:h-20 gap-4">
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center"
+            className="flex items-center flex-shrink-0 min-w-0"
           >
             <img
               src="/1031-exchange-los-angeles-ca-logo.png"
               alt="1031 Exchange Los Angeles"
-              className={`h-12 w-auto transition-all duration-300 ${shouldUseWhiteText ? 'brightness-0 invert' : ''}`}
+              className={`h-12 w-auto max-w-[200px] transition-all duration-300 flex-shrink-0 ${shouldUseWhiteText ? 'brightness-0 invert' : ''}`}
             />
           </Link>
 
@@ -420,7 +420,14 @@ const Header = () => {
                 {/* Services Mobile */}
                 <div>
                   <button
-                    onClick={() => setServicesOpen(!servicesOpen)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setServicesOpen(!servicesOpen);
+                      setLocationsOpen(false);
+                      setPropertiesOpen(false);
+                      setToolsOpen(false);
+                    }}
                     className={`flex items-center justify-between w-full text-left ${shouldUseWhiteText ? 'text-white hover:text-white' : 'text-black hover:text-black'}`}
                     aria-expanded={servicesOpen}
                   >
@@ -434,6 +441,7 @@ const Header = () => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         className="mt-4 space-y-4"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <div className="space-y-3">
                           {SERVICES.slice(0, 7).map((service) => (
@@ -441,7 +449,10 @@ const Header = () => {
                               key={service.slug}
                               href={`/services/${service.slug}`}
                               className="block text-sm text-white hover:text-white py-2"
-                              onClick={() => setMobileMenuOpen(false)}
+                              onClick={() => {
+                                setMobileMenuOpen(false);
+                                setServicesOpen(false);
+                              }}
                             >
                               {service.title}
                             </Link>
@@ -450,7 +461,10 @@ const Header = () => {
                         <Link
                           href="/services"
                           className="block text-sm text-white font-medium pt-2"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setServicesOpen(false);
+                          }}
                         >
                           View all {SERVICES.length} services →
                         </Link>
@@ -462,7 +476,14 @@ const Header = () => {
                 {/* Locations Mobile */}
                 <div>
                   <button
-                    onClick={() => setLocationsOpen(!locationsOpen)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setLocationsOpen(!locationsOpen);
+                      setServicesOpen(false);
+                      setPropertiesOpen(false);
+                      setToolsOpen(false);
+                    }}
                     className={`flex items-center justify-between w-full text-left ${shouldUseWhiteText ? 'text-white hover:text-white' : 'text-black hover:text-black'}`}
                     aria-expanded={locationsOpen}
                   >
@@ -476,13 +497,17 @@ const Header = () => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         className="mt-4 grid grid-cols-2 gap-2"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {LOCATIONS.map((location) => (
                           <Link
                             key={location.slug}
                             href={`/locations/${location.slug}`}
                             className="block text-sm text-white hover:text-white py-1"
-                            onClick={() => setMobileMenuOpen(false)}
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setLocationsOpen(false);
+                            }}
                           >
                             {location.name}
                           </Link>
@@ -490,7 +515,10 @@ const Header = () => {
                         <Link
                           href="/locations"
                           className="block text-sm text-white font-medium pt-2 col-span-2"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setLocationsOpen(false);
+                          }}
                         >
                           View all {LOCATIONS.length} locations →
                         </Link>
@@ -502,7 +530,14 @@ const Header = () => {
                 {/* Properties Mobile */}
                 <div>
                   <button
-                    onClick={() => setPropertiesOpen(!propertiesOpen)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setPropertiesOpen(!propertiesOpen);
+                      setServicesOpen(false);
+                      setLocationsOpen(false);
+                      setToolsOpen(false);
+                    }}
                     className={`flex items-center justify-between w-full text-left ${shouldUseWhiteText ? 'text-white hover:text-white' : 'text-black hover:text-black'}`}
                     aria-expanded={propertiesOpen}
                   >
@@ -516,13 +551,17 @@ const Header = () => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         className="mt-4 space-y-2"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {PROPERTY_TYPES.map((propertyType) => (
                           <Link
                             key={propertyType.slug}
                             href={`/property-types#${propertyType.slug}`}
                             className="block text-sm text-white hover:text-white py-1"
-                            onClick={() => setMobileMenuOpen(false)}
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setPropertiesOpen(false);
+                            }}
                           >
                             {propertyType.name}
                           </Link>
@@ -530,7 +569,10 @@ const Header = () => {
                         <Link
                           href="/properties"
                           className="block text-sm text-white font-medium pt-2"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setPropertiesOpen(false);
+                          }}
                         >
                           View all properties →
                         </Link>
@@ -542,7 +584,14 @@ const Header = () => {
                 {/* Tools Mobile */}
                 <div>
                   <button
-                    onClick={() => setToolsOpen(!toolsOpen)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setToolsOpen(!toolsOpen);
+                      setServicesOpen(false);
+                      setLocationsOpen(false);
+                      setPropertiesOpen(false);
+                    }}
                     className={`flex items-center justify-between w-full text-left ${shouldUseWhiteText ? 'text-white hover:text-white' : 'text-black hover:text-black'}`}
                     aria-expanded={toolsOpen}
                   >
@@ -556,32 +605,45 @@ const Header = () => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         className="mt-4 space-y-2"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <Link
                           href="/tools/boot-calculator"
                           className="block text-sm text-white hover:text-white py-1"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setToolsOpen(false);
+                          }}
                         >
                           Boot Calculator
                         </Link>
                         <Link
                           href="/tools/exchange-cost-estimator"
                           className="block text-sm text-white hover:text-white py-1"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setToolsOpen(false);
+                          }}
                         >
                           Exchange Cost Estimator
                         </Link>
                         <Link
                           href="/tools/identification-rules-checker"
                           className="block text-sm text-white hover:text-white py-1"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setToolsOpen(false);
+                          }}
                         >
                           Identification Rules Checker
                         </Link>
                         <Link
                           href="/tools"
                           className="block text-sm text-white font-medium pt-2"
-                          onClick={() => setMobileMenuOpen(false)}
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setToolsOpen(false);
+                          }}
                         >
                           View all tools →
                         </Link>
