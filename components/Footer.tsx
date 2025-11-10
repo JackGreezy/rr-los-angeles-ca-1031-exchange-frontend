@@ -238,15 +238,6 @@ const Footer = () => {
                   Sitemap
                   <ExternalLink className="h-3 w-3" />
                 </Link>
-                <Link href="/resources/1031-calculator" className="hover:text-slate-200 transition-colors">
-                  1031 Calculator
-                </Link>
-                <Link href="/resources/deadline-tracker" className="hover:text-slate-200 transition-colors">
-                  Deadline Tracker
-                </Link>
-                <Link href="/resources/identification-rules" className="hover:text-slate-200 transition-colors">
-                  Identification Rules
-                </Link>
               </div>
 
               <div className="text-sm text-slate-500">
