@@ -49,15 +49,16 @@ export default function PropertyTypePage({ params }: PropertyTypePageProps) {
 
   // Search items include ALL property types except the current one
   const searchItems = useMemo(() => {
-    return inventoryBatch01.inventorySpotlight01
-      .filter(item => item.type !== propertyType.slug)
-      .map(item => {
-        const pt = propertyTypesData.find(p => p.slug === item.type);
+    return propertyTypesData
+      .filter(pt => pt.slug !== propertyType.slug)
+      .map(pt => {
+        // Try to get inventory data for description, fallback to name
+        const inventoryItem = inventoryBatch01.inventorySpotlight01.find(item => item.type === pt.slug);
         return {
-          title: item.title,
-          slug: pt?.route || item.type,
-          description: item.copy,
-          href: `/property-types/${pt?.route || item.type}`,
+          title: pt.name,
+          slug: pt.route,
+          description: inventoryItem?.copy || `Explore ${pt.name.toLowerCase()} investment opportunities for your 1031 exchange in Los Angeles CA.`,
+          href: `/property-types/${pt.route}`,
         };
       });
   }, [propertyType.slug]);
@@ -188,17 +189,11 @@ export default function PropertyTypePage({ params }: PropertyTypePageProps) {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
-                  href={inventoryData.href}
+                  href={`/contact?project_type=${encodeURIComponent(propertyType.name)}`}
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
                 >
-                  {inventoryData.ctaLabel}
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-                <Link
-                  href={`/contact?project_type=${encodeURIComponent(propertyType.name)}`}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-slate-700 text-slate-200 rounded-lg font-medium hover:bg-slate-800 transition-colors"
-                >
                   Get Expert Guidance
+                  <ArrowRight className="h-5 w-5" />
                 </Link>
                 <a
                   href={`tel:${PHONE.replace(/[^0-9]/g, "")}`}
@@ -344,39 +339,6 @@ export default function PropertyTypePage({ params }: PropertyTypePageProps) {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="bg-slate-950 py-20 md:py-28">
-          <div className="max-w-4xl mx-auto px-6 md:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-              <h2 className="font-serif text-3xl md:text-4xl text-white mb-6">
-                Explore {propertyType.name} Investment Opportunities
-              </h2>
-              <p className="text-lg text-slate-300 leading-relaxed mb-8">
-                Our team specializes in matching 1031 exchange investors with qualified {propertyType.name.toLowerCase()} 
-                replacement properties across Los Angeles CA and surrounding areas. Contact us for personalized property recommendations.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href={inventoryData.href}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
-                >
-                  {inventoryData.ctaLabel}
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
-                <Link
-                  href="/contact"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-slate-700 text-slate-200 rounded-lg font-medium hover:bg-slate-800 transition-colors"
-                >
-                  Schedule Property Consultation
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </section>
       </div>
     </>
   );
