@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -132,9 +133,11 @@ const Header = () => {
             href="/"
             className="flex items-center flex-shrink-0 min-w-0"
           >
-            <img
+            <Image
               src="/1031-exchange-los-angeles-ca-logo.png"
               alt="1031 Exchange Los Angeles"
+              width={200}
+              height={48}
               className={`h-12 w-auto max-w-[200px] transition-all duration-300 flex-shrink-0 ${shouldUseWhiteText ? 'brightness-0 invert' : ''}`}
             />
           </Link>

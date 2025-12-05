@@ -111,7 +111,7 @@ function ContactForm() {
         const id: string = window.turnstile.render(captchaRef.current, {
           sitekey: siteKey,
           size: "normal",
-          callback: (token: string) => {
+          callback: () => {
             setTurnstileReady(true);
           },
           "error-callback": () => {
@@ -284,18 +284,6 @@ function ContactForm() {
     }
   };
 
-  const handleInputChange = (field: keyof FormState, value: string) => {
-    // Special handling for phone field - only allow numbers, spaces, dashes, and parentheses
-    if (field === 'phone') {
-      const phoneRegex = /[^0-9\s\-\(\)\+]/g;
-      value = value.replace(phoneRegex, '');
-    }
-
-    setFormState(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
 
   return (
     <>
@@ -442,7 +430,7 @@ function ContactForm() {
                     </p>
                   ) : (
                     <p id="projectType-helper" className="mt-1 text-xs text-gray-500">
-                      Select the service you're interested in
+                      Select the service you&apos;re interested in
                     </p>
                   )}
                 </div>

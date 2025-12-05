@@ -24,6 +24,18 @@ import { BRAND_NAME, PHONE, ADDRESS, PROPERTY_TYPES as PROPERTY_TYPES_CONSTANTS,
 import { getLocationImagePath, getPropertyTypeImagePath } from "@/lib/image-utils";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
+// Extend window type for Turnstile
+declare global {
+  interface Window {
+    _turnstileLoaded?: boolean;
+    _lastTurnstileToken?: string;
+    turnstile?: {
+      render: (element: HTMLElement, options: Record<string, unknown>) => string;
+      execute: (widgetId: string, options?: Record<string, unknown>) => Promise<string>;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
 
 const PRIMARY_BRAND_COLOR = "#0f2d4c";
 const ACCENT_COLOR = "#f5b544";
@@ -313,14 +325,14 @@ const glassPanelStyle = {
 
 function loadTurnstile(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if ((window as any)._turnstileLoaded) return Promise.resolve();
+  if (window._turnstileLoaded) return Promise.resolve();
 
   return new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>(
       'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]'
     );
     if (existing) {
-      (window as any)._turnstileLoaded = true;
+      window._turnstileLoaded = true;
       return resolve();
     }
     const s = document.createElement("script");
@@ -328,7 +340,7 @@ function loadTurnstile(): Promise<void> {
     s.async = true;
     s.defer = true;
     s.onload = () => {
-      (window as any)._turnstileLoaded = true;
+      window._turnstileLoaded = true;
       resolve();
     };
     s.onerror = () => {
@@ -375,7 +387,7 @@ export default function Page(): JSX.Element {
         await loadTurnstile();
         if (cancelled) return;
 
-        const turnstile = (window as any).turnstile;
+        const turnstile = window.turnstile;
         if (!turnstile || !captchaRef.current) {
           console.error("Turnstile not available");
           return;
@@ -460,16 +472,16 @@ export default function Page(): JSX.Element {
       setStatus("loading");
       let turnstileToken = "";
       if (TURNSTILE_SITE_KEY) {
-        if (!turnstileReady || !(window as any).turnstile || !turnstileId) {
+        if (!turnstileReady || !window.turnstile || !turnstileId) {
           setStatus("error");
           setStatusMessage("Please complete the security verification.");
           return;
         }
 
         try {
-          (window as any).turnstile.reset(turnstileId);
+          window.turnstile!.reset(turnstileId);
           turnstileToken = await new Promise<string>((resolve, reject) => {
-            (window as any).turnstile.execute(turnstileId, {
+            window.turnstile!.execute(turnstileId, {
               async: true,
               action: "form_submit",
               callback: (token: string) => resolve(token),
@@ -503,14 +515,14 @@ export default function Page(): JSX.Element {
       setStatusMessage("Thank you for your inquiry. A member of our team will contact you within 24 hours.");
       setFormState(initialFormState);
       setErrors({});
-      if ((window as any).turnstile && turnstileId) {
-        (window as any).turnstile.reset(turnstileId);
+      if (window.turnstile && turnstileId) {
+        window.turnstile!.reset(turnstileId);
       }
     } catch {
       setStatus("error");
       setStatusMessage("There was an issue sending your message. Please try again or call us directly.");
-      if ((window as any).turnstile && turnstileId) {
-        (window as any).turnstile.reset(turnstileId);
+      if (window.turnstile && turnstileId) {
+        window.turnstile!.reset(turnstileId);
       }
     }
   };
