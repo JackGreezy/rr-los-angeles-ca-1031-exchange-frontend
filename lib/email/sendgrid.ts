@@ -91,3 +91,5 @@ export async function sendInternalNotifications(brand: BrandData, lead: Lead) {
   await Promise.all(sends);
 }
 
+
+

@@ -2,7 +2,7 @@
 
 import Head from "next/head";
 import Link from "next/link";
-import { FormEvent, useState, useMemo } from "react";
+import { FormEvent, useState, useMemo, useRef, useEffect } from "react";
 import SearchInput from "@/components/SearchInput";
 import { motion } from "framer-motion";
 import {
@@ -22,6 +22,7 @@ import {
 import { servicesData, propertyTypesData, locationsData } from "@/data";
 import { BRAND_NAME, PHONE, ADDRESS, PROPERTY_TYPES as PROPERTY_TYPES_CONSTANTS, SERVICES as SERVICES_CONSTANTS } from "@/lib/constants";
 import { getLocationImagePath, getPropertyTypeImagePath } from "@/lib/image-utils";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 
 const PRIMARY_BRAND_COLOR = "#0f2d4c";
@@ -310,6 +311,34 @@ const glassPanelStyle = {
   backdropFilter: "blur(14px)",
 } as const;
 
+function loadTurnstile(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if ((window as any)._turnstileLoaded) return Promise.resolve();
+
+  return new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src^="https://challenges.cloudflare.com/turnstile/v0/api.js"]'
+    );
+    if (existing) {
+      (window as any)._turnstileLoaded = true;
+      return resolve();
+    }
+    const s = document.createElement("script");
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    s.async = true;
+    s.defer = true;
+    s.onload = () => {
+      (window as any)._turnstileLoaded = true;
+      resolve();
+    };
+    s.onerror = () => {
+      console.error("Failed to load Turnstile script");
+      reject(new Error("Turnstile script failed to load"));
+    };
+    document.head.appendChild(s);
+  });
+}
+
 // Removed cardMotion to fix SSR hydration issues
 
 export default function Page(): JSX.Element {
@@ -320,6 +349,9 @@ export default function Page(): JSX.Element {
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [locationSearchQuery] = useState("");
+  const [turnstileId, setTurnstileId] = useState<string | null>(null);
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const captchaRef = useRef<HTMLDivElement | null>(null);
 
   const heroCityNames = useMemo(
     () => CA_CITIES_SLUGS.map((city) => city.name).join(" • "),
@@ -333,6 +365,44 @@ export default function Page(): JSX.Element {
       city.description.toLowerCase().includes(locationSearchQuery.toLowerCase())
     );
   }, [locationSearchQuery]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!TURNSTILE_SITE_KEY) return;
+
+    const initTurnstile = async () => {
+      try {
+        await loadTurnstile();
+        if (cancelled) return;
+
+        const turnstile = (window as any).turnstile;
+        if (!turnstile || !captchaRef.current) {
+          console.error("Turnstile not available");
+          return;
+        }
+
+        const id: string = turnstile.render(captchaRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          size: "normal",
+          callback: () => setTurnstileReady(true),
+          "error-callback": () => setTurnstileReady(false),
+          "timeout-callback": () => setTurnstileReady(false),
+        });
+
+        setTurnstileId(id);
+        setTurnstileReady(true);
+      } catch (error) {
+        console.error("Failed to initialize Turnstile:", error);
+        setTurnstileReady(false);
+      }
+    };
+
+    initTurnstile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const validateForm = (state: FormState): FormErrors => {
     const newErrors: FormErrors = {};
@@ -388,10 +458,41 @@ export default function Page(): JSX.Element {
 
     try {
       setStatus("loading");
+      let turnstileToken = "";
+      if (TURNSTILE_SITE_KEY) {
+        if (!turnstileReady || !(window as any).turnstile || !turnstileId) {
+          setStatus("error");
+          setStatusMessage("Please complete the security verification.");
+          return;
+        }
+
+        try {
+          (window as any).turnstile.reset(turnstileId);
+          turnstileToken = await new Promise<string>((resolve, reject) => {
+            (window as any).turnstile.execute(turnstileId, {
+              async: true,
+              action: "form_submit",
+              callback: (token: string) => resolve(token),
+              "error-callback": () => reject(new Error("turnstile-error")),
+              "timeout-callback": () => reject(new Error("turnstile-timeout")),
+            });
+          });
+        } catch (err) {
+          console.error("Turnstile execution error:", err);
+          setStatus("error");
+          setStatusMessage("Security verification failed. Please try again.");
+          return;
+        }
+      }
+
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formState),
+        body: JSON.stringify({
+          ...formState,
+          phone: formState.phone.replace(/\D/g, ''),
+          turnstileToken,
+        }),
       });
 
       if (!response.ok) {
@@ -402,9 +503,15 @@ export default function Page(): JSX.Element {
       setStatusMessage("Thank you for your inquiry. A member of our team will contact you within 24 hours.");
       setFormState(initialFormState);
       setErrors({});
+      if ((window as any).turnstile && turnstileId) {
+        (window as any).turnstile.reset(turnstileId);
+      }
     } catch {
       setStatus("error");
       setStatusMessage("There was an issue sending your message. Please try again or call us directly.");
+      if ((window as any).turnstile && turnstileId) {
+        (window as any).turnstile.reset(turnstileId);
+      }
     }
   };
 
@@ -1221,6 +1328,11 @@ export default function Page(): JSX.Element {
                       helper="Describe your property being sold, budget range, and specific requirements."
                     />
                   </div>
+                  {TURNSTILE_SITE_KEY ? (
+                    <div className="flex justify-center">
+                      <div ref={captchaRef} className="min-h-[78px]" />
+                    </div>
+                  ) : null}
                   <motion.button
                     type="submit"
                     whileHover={{ scale: 1.01 }}
@@ -1230,7 +1342,7 @@ export default function Page(): JSX.Element {
                       backgroundColor: ACCENT_COLOR,
                       color: PRIMARY_BRAND_COLOR,
                     }}
-                    disabled={status === "loading"}
+                    disabled={status === "loading" || (!!TURNSTILE_SITE_KEY && !turnstileReady)}
                   >
                     {status === "loading" ? "Sending..." : "Send Message"}
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
